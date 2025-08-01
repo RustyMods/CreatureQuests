@@ -1,0 +1,23 @@
+quest_type_kill: "Kill"
+quest_type_harvest: "Harvest"
+quest_type_collect: "Collect"
+quest_type_bounty: "Bounty"
+quest_type_farm: "Farm"
+quest_type_collectitems: "Collect"
+quest_type_tame: 'Tame'
+quest_type_procreate: 'Procreate'
+quest_type_destructible: 'Mine'
+quest_type_run: "Run"
+quest_type_jump: 'Jump'
+quest_type_fly: 'Fly'
+quest_type_attach: 'Attach'
+quest_type_travel: 'Explore'
+raven_continue: "Continue"
+raven_accept: "Accept Quest"
+raven_cancel: "Cancel Quest"
+raven_keep: "Keep Quest"
+raven_decline: "Decline Quest"
+raven_collect: "Collect Reward"
+raven_refuse: "Refuse Reward"
+raven_reward: 'Reward'
+tooltip_wyrdform_master: "Allows to transform into creatures at will"
