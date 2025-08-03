@@ -77,6 +77,7 @@ public static class HideName
             // check if hud data character is shapeshifted
             var isShapeshifted = CreatureFormManager.TryGetCreature(hudData.m_character.name, out CreatureFormManager.CreatureForm data);
             
+            // if is player, or is boss, or is mount, or is hovered
             if ((hudData.m_character.IsPlayer() && !isShapeshifted) || hudData.m_character.IsBoss() ||
                 hudData.m_isMount || hudData.m_hoverTimer < (double)__instance.m_hoverShowDuration)
             {

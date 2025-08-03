@@ -1,9 +1,9 @@
 {
-  "name": "YOURMODNAME_HERE",
-  "version_number": "1.0.0",
-  "website_url": "https://discord.gg/pdHgy6Bsng",
-  "description": "Your mod description goes here. Do not forget to replace the icon.png file with your own. Must be 256x256. Your Readme.md file will be copied from the one in your project folder.",
+  "name": "CreatureQuests",
+  "version_number": "0.0.3",
+  "website_url": "https://github.com/RustyMods/CreatureQuests/tree/main",
+  "description": "Shapeshift into creatures and complete quests",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2201"
+    "denikson-BepInExPack_Valheim-5.4.2202"
   ]
 }

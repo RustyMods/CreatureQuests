@@ -21,3 +21,9 @@ raven_collect: "Collect Reward"
 raven_refuse: "Refuse Reward"
 raven_reward: 'Reward'
 tooltip_wyrdform_master: "Allows to transform into creatures at will"
+tooltip_allow_transform: 'Allows to transform into'
+tooltip_input_chat: 'Input in chat'
+tooltip_to_revert: 'to revert'
+tooltip_creature_name: 'creature name to transform'
+hud_revert: 'Revert'
+tooltip_hotkey: 'Hotkey'

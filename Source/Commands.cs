@@ -1,13 +1,7 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using BepInEx;
+﻿using System.Linq;
+using CreatureQuests.Managers;
 using HarmonyLib;
-using Shapeshift.Source;
 using ShapeShiftManager;
-using UnityEngine;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace CreatureQuests.Source;
 

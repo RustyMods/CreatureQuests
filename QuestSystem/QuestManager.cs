@@ -10,7 +10,6 @@ using Shapeshift.QuestSystem.Behaviors;
 using ShapeShiftManager;
 using UnityEngine;
 using YamlDotNet.Serialization;
-using Helpers = Shapeshift.QuestSystem.Helpers;
 
 namespace CreatureQuests.QuestSystem;
 
@@ -22,7 +21,8 @@ public static class QuestManager
     public static readonly Dictionary<string, Quest> m_quests = new();
 
     private static readonly Dictionary<string, Character> m_defeatKeyToCharacter = new();
-    
+
+    public static bool FirstQuestTriggered;
     public static bool HasAvailableQuests() => m_questQueue.Values.Any(quest => !quest.m_completed && quest.m_isValid);
     
     public static Quest? GetQuest()
@@ -51,6 +51,7 @@ public static class QuestManager
     
     private static void LoadProgress(Player player)
     {
+        FirstQuestTriggered = false;
         if (!player.m_customData.TryGetValue(PlayerCustomDataKey, out string serializedData)) return;
         try
         {
@@ -60,6 +61,7 @@ public static class QuestManager
             {
                 if (!data.Contains(quest.Name)) continue;
                 quest.SetCompleted();
+                FirstQuestTriggered = true;
             }
         }
         catch
@@ -102,7 +104,7 @@ public static class QuestManager
 
     public class Quest
     {
-        public string Name;
+        public readonly string Name;
         public string Description;
         public readonly int Index;
         public string RequiredShapeshiftForm = "";
@@ -134,7 +136,7 @@ public static class QuestManager
             m_questQueue[index] = this;
         }
 
-        public Quest(string name, int index) : this(name, "", index, QuestData.QuestType.Kill){}
+        public Quest(string name, int index) : this(name, "", index, QuestData.QuestType.None){}
         
         public Quest(string name, string description, QuestData.QuestType type)
             : this(name, description, GetNextIndex(), type) { }
@@ -448,7 +450,10 @@ public static class QuestManager
             Dialogue dialogue = new Dialogue(acceptText, cancelText, alt =>
             {
                 if (alt) CancelQuest();
-                else QuestRaven.ToggleFly(false);
+                else
+                {
+                    if (!CreatureQuestsPlugin.plugin.IsInvoking()) CreatureQuestsPlugin.plugin.Invoke(nameof(CreatureQuestsPlugin.ToggleFly), 5f);
+                }
             });
             m_cancelQueue.Enqueue(dialogue);
         }
@@ -460,7 +465,11 @@ public static class QuestManager
             Dialogue dialogue = new Dialogue(acceptText, cancelText, alt =>
             {
                 if (!alt) AcceptQuest();
-                else QuestRaven.m_questData = null;
+                else
+                {
+                    QuestRaven.m_questData = null;
+                    if (!CreatureQuestsPlugin.plugin.IsInvoking()) CreatureQuestsPlugin.plugin.Invoke(nameof(CreatureQuestsPlugin.ToggleFly), 5f);
+                }
             });
             m_startQueue.Enqueue(dialogue);
         }
@@ -472,7 +481,10 @@ public static class QuestManager
             Dialogue dialogue = new Dialogue(acceptText, cancelText, alt =>
             {
                 if (!alt) CollectReward();
-                else QuestRaven.ToggleFly(false);
+                else
+                {
+                    if (!CreatureQuestsPlugin.plugin.IsInvoking()) CreatureQuestsPlugin.plugin.Invoke(nameof(CreatureQuestsPlugin.ToggleFly), 5f);
+                }
             });
             m_completedQueue.Enqueue(dialogue);
         }
@@ -651,6 +663,7 @@ public static class QuestManager
 
             public enum QuestType
             {
+                None,
                 Kill,
                 Harvest,
                 Collect,

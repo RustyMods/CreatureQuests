@@ -93,7 +93,6 @@ public static class Transformation
         }
     }
 
-
     private static void Read()
     {
         if (!Directory.Exists(CreatureFolder)) return;
@@ -197,6 +196,7 @@ public static class Transformation
 
         return true;
     }
+    
     [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.UseItem))]
     private static class Humanoid_UseItem_Patch
     {
@@ -219,7 +219,9 @@ public static class Transformation
         {
             if (m_loaded) return;
             m_scene = __instance.m_objectDBPrefab.GetComponent<ZNetScene>();
+            
             SetupValkyrieArmor();
+            SetupBoarArmor();
             CreatureQuestsPlugin.InitRaven();
             Item.Patch_FejdStartup();
             m_loaded = true;
@@ -369,5 +371,83 @@ public static class Transformation
         var capeMats = new[] { valkyrieMaterial[0], valkyrieMaterial[0] };
         capeMesh.materials = capeMats;
         capeMesh.sharedMaterials = capeMats;
+    }
+
+    private static void SetupBoarArmor()
+    {
+        var BoarSE = ScriptableObject.CreateInstance<CreatureSet>();
+        BoarSE.name = "SE_BoarSet";
+        BoarSE.m_name = "$label_shapeshift $enemy_boar";
+        BoarSE.m_staminaRegenMultiplier = 1.05f;
+        
+        var HelmetBoar = new Item("shapeshiftbundle", "HelmetBoar_RS");
+        HelmetBoar.Name.English("Boar Hood");
+        HelmetBoar.Description.English("A hood made from boar leather");
+        HelmetBoar.RequiredItems.Add("Shapeshift_Boar_item", 1);
+        HelmetBoar.RequiredUpgradeItems.Add("LeatherScraps", 5);
+        HelmetBoar.Crafting.Add(CraftingTable.Workbench, 1);
+        var HelmetData = HelmetBoar.Prefab.GetComponent<ItemDrop>();
+        HelmetData.m_itemData.m_durability = 100;
+        HelmetData.m_itemData.m_shared.m_maxQuality = 4;
+        HelmetData.m_itemData.m_shared.m_weight = 1;
+        HelmetData.m_itemData.m_shared.m_armor = 1;
+        HelmetData.m_itemData.m_shared.m_armorPerLevel = 2;
+        HelmetData.m_itemData.m_shared.m_setName = "Boar";
+        HelmetData.m_itemData.m_shared.m_setSize = 3;
+        HelmetData.m_itemData.m_shared.m_setStatusEffect = BoarSE;
+        BoarSE.m_icon = FindPrefab("TrophyBoar")!.GetComponent<ItemDrop>().m_itemData.GetIcon();
+
+        var ChestBoar = new Item("shapeshiftbundle", "ArmorBoarChest_RS");
+        ChestBoar.Name.English("Boar Pauldrons");
+        ChestBoar.Description.English("A bare chest for the true warriors");
+        ChestBoar.RequiredItems.Add("Shapeshift_Boar_item", 1);
+        ChestBoar.RequiredUpgradeItems.Add("LeatherScraps", 10);
+        ChestBoar.Crafting.Add(CraftingTable.Workbench, 1);
+        var ChestData = ChestBoar.Prefab.GetComponent<ItemDrop>();
+        ChestData.m_itemData.m_durability = 100;
+        ChestData.m_itemData.m_shared.m_maxQuality = 4;
+        ChestData.m_itemData.m_shared.m_weight = 5;
+        ChestData.m_itemData.m_shared.m_armor = 1;
+        ChestData.m_itemData.m_shared.m_armorPerLevel = 2;
+        ChestData.m_itemData.m_shared.m_setName = "Boar";
+        ChestData.m_itemData.m_shared.m_setSize = 3;
+        ChestData.m_itemData.m_shared.m_setStatusEffect = BoarSE;
+
+        var LegBoar = new Item("shapeshiftbundle", "ArmorBoarLegs_RS");
+        LegBoar.Name.English("Boar Greaves");
+        LegBoar.Description.English("Rough and patchy pair of greaves");
+        LegBoar.RequiredItems.Add("Shapeshift_Boar_item", 1);
+        LegBoar.RequiredUpgradeItems.Add("LeatherScraps", 10);
+        LegBoar.Crafting.Add(CraftingTable.Workbench, 1);
+        var LegData = LegBoar.Prefab.GetComponent<ItemDrop>();
+        LegData.m_itemData.m_durability = 100;
+        LegData.m_itemData.m_shared.m_maxQuality = 4;
+        LegData.m_itemData.m_shared.m_weight = 5;
+        LegData.m_itemData.m_shared.m_armor = 1;
+        LegData.m_itemData.m_shared.m_armorPerLevel = 2;
+        LegData.m_itemData.m_shared.m_setName = "Boar";
+        LegData.m_itemData.m_shared.m_setSize = 3;
+        LegData.m_itemData.m_shared.m_setStatusEffect = BoarSE;
+
+        if (FindPrefab("HelmetTrollLeather") is { } trollHelm)
+        {
+            var renderers = new List<Renderer>();
+            renderers.Add(HelmetBoar.Prefab.GetComponentInChildren<SkinnedMeshRenderer>(true));
+            renderers.Add(ChestBoar.Prefab.GetComponentInChildren<SkinnedMeshRenderer>(true));
+            renderers.Add(LegBoar.Prefab.GetComponentInChildren<SkinnedMeshRenderer>(true));
+            renderers.Add(HelmetBoar.Prefab.GetComponentInChildren<MeshRenderer>());
+            renderers.Add(ChestBoar.Prefab.GetComponentInChildren<MeshRenderer>());
+            renderers.Add(LegBoar.Prefab.GetComponentInChildren<MeshRenderer>());
+
+            var shader = trollHelm.GetComponentInChildren<SkinnedMeshRenderer>(true).material.shader;
+
+            foreach (var renderer in renderers)
+            {
+                foreach (var mat in renderer.sharedMaterials)
+                {
+                    mat.shader = shader;
+                }
+            }
+        }
     }
 }

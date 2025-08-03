@@ -1,8 +1,7 @@
 ﻿using System.Linq;
 using HarmonyLib;
 using ShapeShiftManager;
-using Splatform;
-using UnityEngine;
+
 
 namespace CreatureQuests.Source;
 
@@ -11,7 +10,9 @@ public class SE_ValkyrieSet : SE_Stats
     public override string GetTooltipString()
     {
         var tooltip = base.GetTooltipString();
-        tooltip += "<color=orange>$tooltip_wyrdform_master</color>";
+        tooltip += "<color=orange>$tooltip_wyrdform_master</color>\n";
+        tooltip += "$tooltip_input_chat: <color=orange>/wyrdform</color> $tooltip_to_revert\n";
+        tooltip += "$tooltip_input_chat: <color=orange>/wyrdform</color> $tooltip_creature_name";
         return tooltip;
     }
 

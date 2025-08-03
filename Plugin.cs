@@ -20,31 +20,19 @@ namespace CreatureQuests
     public class CreatureQuestsPlugin : BaseUnityPlugin
     {
         internal const string ModName = "CreatureQuests";
-        internal const string ModVersion = "1.0.0";
+        internal const string ModVersion = "0.0.3";
         internal const string Author = "RustyMods";
         private const string ModGUID = Author + "." + ModName;
-        private static string ConfigFileName = ModGUID + ".cfg";
-        private static string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
-
+        private static readonly string ConfigFileName = ModGUID + ".cfg";
+        private static readonly string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
         internal static string ConnectionError = "";
-
         private readonly Harmony _harmony = new(ModGUID);
+        public static readonly ManualLogSource CreatureQuestsLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);
+        public static readonly ConfigSync ConfigSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
+        public enum Toggle { On = 1, Off = 0 }
 
-        public static readonly ManualLogSource CreatureQuestsLogger =
-            BepInEx.Logging.Logger.CreateLogSource(ModName);
-
-        public static readonly ConfigSync ConfigSync = new(ModGUID)
-            { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
-
-        public enum Toggle
-        {
-            On = 1,
-            Off = 0
-        }
-
-        private static AssetBundle Assets = GetAssetBundle("ravenquestbundle");
-        public static GameObject m_thirdEye = Assets.LoadAsset<GameObject>("thirdeye");
-
+        private static readonly AssetBundle Assets = GetAssetBundle("ravenquestbundle");
+        public static readonly GameObject m_thirdEye = Assets.LoadAsset<GameObject>("thirdeye");
         private static AssetBundle GetAssetBundle(string fileName)
         {
             Assembly execAssembly = Assembly.GetExecutingAssembly();
@@ -52,18 +40,18 @@ namespace CreatureQuests
             using Stream? stream = execAssembly.GetManifestResourceStream(resourceName);
             return AssetBundle.LoadFromStream(stream);
         }
-
         public static CreatureQuestsPlugin plugin = null!;
         public static GameObject m_root = null!;
         private static ConfigEntry<Toggle> _serverConfigLocked = null!;
         public static GameObject m_raven = null!;
         public static ConfigEntry<Vector2> _hudPosition = null!;
         public static ConfigEntry<float> _UIScale = null!;
-        private static ConfigEntry<KeyCode> _spawnRavenKey = null!;
+        public static ConfigEntry<KeyCode> _spawnRavenKey = null!;
         public static ConfigEntry<Toggle> _enableQuests = null!;
         public static ConfigEntry<Toggle> _hidePlayerName = null!;
         public static ConfigEntry<Toggle> _canDropRelics = null!;
         public static ConfigEntry<float> _relicDropChance = null!;
+        public static ConfigEntry<KeyCode> _transformationTrigger = null!;
         public void Awake()
         {
             plugin = this;
@@ -86,20 +74,40 @@ namespace CreatureQuests
         {
             _serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, "If on, the configuration is locked and can be changed by server admins only.");
             _ = ConfigSync.AddLockingConfigEntry(_serverConfigLocked);
-            _hudPosition = config("2 - Settings", "HUD Overlay", new Vector2(1680f, -250f), "Set position of HUD overlay");
+            
+            _hudPosition = config("2 - Settings", "HUD Overlay", new Vector2(1680f, -250f), "Set position of Quest overlay");
             _UIScale = config("2 - Settings", "UI Scale", 1f, new ConfigDescription("Set scale of UI", new AcceptableValueRange<float>(0f, 2f)));
-            _spawnRavenKey = config("2 - Settings", "Spawn Key", KeyCode.F4, "Set the key code to spawn/despawn quest raven");
+            _spawnRavenKey = config("2 - Settings", "Spawn Key", KeyCode.F4, "Set the key code to spawn/despawn quest raven", false);
             _enableQuests = config("2 - Settings", "Quest System", Toggle.On, "If on, quest system is active");
-            _hidePlayerName = config("2 - Settings", "Hide Player Name", Toggle.Off,
-                "If on, when player is a creature, hide name tag");
-            _canDropRelics = config("2 - Settings", "Drop Relics", Toggle.On,
-                "If on, creatures drop their relic once relic is known");
-            _relicDropChance = config("2 - Settings", "Relic Drop Chance", 1f,
-                new ConfigDescription("chance to drop relic",
-                    new AcceptableValueRange<float>(0f, 100f)));
+            _hidePlayerName = config("2 - Settings", "Hide Player Name", Toggle.Off, "If on, when player is a creature, hide name tag");
+            _canDropRelics = config("2 - Settings", "Drop Relics", Toggle.On, "If on, creatures drop their relic once relic is known");
+            _relicDropChance = config("2 - Settings", "Relic Drop Chance", 1f, new ConfigDescription("chance to drop relic", new AcceptableValueRange<float>(0f, 100f)));
+            _transformationTrigger = config("2 - Settings", "Shapeshift Trigger", KeyCode.G,
+                "Keycode to trigger transform when wearing creature set", false);
         }
 
         private void Update()
+        {
+            if (!Player.m_localPlayer) return;
+            if (NotReady()) return;
+            UpdateQuestRaven();
+            UpdateSetTransformation();
+        }
+
+        private static bool NotReady()
+        {
+            return !Player.m_localPlayer || Menu.IsVisible() || Chat.instance.IsChatDialogWindowVisible() || Player.m_localPlayer.IsDead() ||
+                   Player.m_localPlayer.InIntro() || Player.m_localPlayer.IsTeleporting() || InventoryGui.IsVisible() ||
+                   Console.IsVisible() || StoreGui.IsVisible();
+        }
+        private static void UpdateSetTransformation()
+        {
+            if (!Input.GetKeyDown(_transformationTrigger.Value)) return;
+            var shapeShifted = CreatureFormManager.IsCreatureForm(Player.m_localPlayer.name);
+            if (shapeShifted) CreatureFormManager.Revert(Player.m_localPlayer);
+            else CreatureFormManager.TriggerTransformation(Player.m_localPlayer, CreatureSet.m_selectedForm, 0f);
+        }
+        private static void UpdateQuestRaven()
         {
             if (_enableQuests.Value is Toggle.Off)
             {
@@ -107,37 +115,25 @@ namespace CreatureQuests
             }
             else
             {
-                if (!Player.m_localPlayer || Player.m_localPlayer.IsDead() || !ZNetScene.instance || !ZNetScene.instance.enabled) return;
-                if (Input.GetKeyDown(_spawnRavenKey.Value))
+                if (!ZNetScene.instance || !ZNetScene.instance.enabled) return;
+                
+                if (!QuestManager.FirstQuestTriggered)
                 {
-                    if (QuestRaven.m_instance is null)
-                    {
-                        QuestRaven.ToggleFly(true);
-                    }
-                    else
-                    {
-                        QuestRaven.ToggleFly(!QuestRaven.m_instance.IsSpawned());
-                    }
+                    QuestRaven.ToggleFly(true);
+                    return;
                 }
+
+                if (!Input.GetKeyDown(_spawnRavenKey.Value)) return;
+                if (QuestRaven.m_instance is null) QuestRaven.ToggleFly(true);
+                else QuestRaven.ToggleFly(!QuestRaven.m_instance.IsSpawned());
             }
         }
         
+        // used to invoke delayed
         public void ToggleFly()
         {
             if (!m_raven || !Player.m_localPlayer) return;
-        
-            if (QuestRaven.m_instance is null)
-            {
-                GameObject raven = Instantiate(m_raven, Player.m_localPlayer.transform.position, Quaternion.identity);
-                if (Utils.FindChild(raven.transform, "Jaw") is { } jaw)
-                {
-                    GameObject thirdEye = Instantiate(m_thirdEye, jaw);
-                    thirdEye.transform.localPosition = new Vector3(0.0004f, 0.0033f, 0.0116f);
-                    thirdEye.transform.localRotation = new Quaternion(-51.949f, 134.846f, 61.205f, 0f);
-                    thirdEye.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-                }
-            }
-
+            if (QuestRaven.m_instance is null) Instantiate(m_raven, Player.m_localPlayer.transform.position, Quaternion.identity);
             if (QuestRaven.m_instance is null) return;
             QuestRaven.m_instance.m_active = !QuestRaven.m_instance.IsSpawned();
         }
@@ -167,6 +163,13 @@ namespace CreatureQuests
             if (ravens is null) return;
             m_raven = Instantiate(ravens.transform.GetChild(0).gameObject, m_root.transform, false);
             m_raven.name = "Overseer_QuestGiver";
+            if (Utils.FindChild(m_raven.transform, "Jaw") is { } jaw)
+            {
+                GameObject thirdEye = Instantiate(m_thirdEye, jaw);
+                thirdEye.transform.localPosition = new Vector3(0.0004f, 0.0033f, 0.0116f);
+                thirdEye.transform.localRotation = new Quaternion(-51.949f, 134.846f, 61.205f, 0f);
+                thirdEye.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+            }
             QuestRaven questComponent = m_raven.AddComponent<QuestRaven>();
             if (m_raven.TryGetComponent(out Raven component))
             {

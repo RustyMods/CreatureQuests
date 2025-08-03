@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Shapeshift.QuestSystem;
+namespace CreatureQuests.QuestSystem;
 
 public static class Helpers
 {

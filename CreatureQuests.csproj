@@ -133,6 +133,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="API\API.cs" />
+        <Compile Include="Managers\CommandData.cs" />
         <Compile Include="Managers\FontManager.cs" />
         <Compile Include="Managers\ItemManager.cs" />
         <Compile Include="Managers\LocalizationManager.cs" />
@@ -161,8 +162,8 @@
         <Compile Include="QuestSystem\Tracking\Tame.cs" />
         <Compile Include="QuestSystem\Tracking\Travel.cs" />
         <Compile Include="QuestSystem\UI.cs" />
-        <Compile Include="Source\CommandData.cs" />
         <Compile Include="Source\Commands.cs" />
+        <Compile Include="Source\CreatureSet.cs" />
         <Compile Include="Source\CustomCreatures.cs" />
         <Compile Include="Source\Helpers.cs" />
         <Compile Include="Source\HideName.cs" />
@@ -185,6 +186,7 @@
         </Content>
         <Content Include="Libs\ShapeShiftManager.dll" />
         <Content Include="Thunderstore\CHANGELOG.md" />
+        <Content Include="Thunderstore\CreatureQuests.dll" />
         <Content Include="Thunderstore\icon.png" />
         <Content Include="Thunderstore\manifest.json" />
         <EmbeddedResource Include="translations\English.yml" />

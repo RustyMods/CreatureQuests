@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using BepInEx;
-using Shapeshift.QuestSystem;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -104,7 +103,19 @@ public class QuestRaven : MonoBehaviour, Hoverable, Interactable, IDestructible
         "No passage until the darkness yields to "
     };
 
-
+    private static readonly List<string> m_firstTriggerTalk = new()
+    {
+        $"Kaw! You there! I am Översyn, bearer of forgotten quests! Press {CreatureQuestsPlugin._spawnRavenKey.Value} to summon me when you're ready to begin.",
+        $"Eyes above, wings below — I am Översyn, and I carry trials for you. Press {CreatureQuestsPlugin._spawnRavenKey.Value} to heed my call.",
+        $"Kraa! A feathered fate awaits. Press {CreatureQuestsPlugin._spawnRavenKey.Value} to meet it head-on.",
+        $"Kaw! A whisper on the wind told me you'd come. Press {CreatureQuestsPlugin._spawnRavenKey.Value} to receive your task.",
+        $"You walk the path of legends. I am Översyn, watcher from beyond. Press {CreatureQuestsPlugin._spawnRavenKey.Value} to call me.",
+        $"The winds shift and so do fates. Summon me with {CreatureQuestsPlugin._spawnRavenKey.Value} and take wing on a new quest.",
+        $"Caw! You're not as lost as you look. Press {CreatureQuestsPlugin._spawnRavenKey.Value} and I'll guide your talons.",
+        $"Översyn watches all... even you. Press {CreatureQuestsPlugin._spawnRavenKey.Value} to prove you’re worth watching.",
+        $"Hark! Not all who wander are ready. But you... maybe. Press {CreatureQuestsPlugin._spawnRavenKey.Value} to test your spirit.",
+        $"Sky-borne and sharp-eyed — I bring fate wrapped in feathers. Press {CreatureQuestsPlugin._spawnRavenKey.Value} if you dare to accept it."
+    };
     public void Awake()
     {
         transform.position = new Vector3(0.0f, 100000f, 0.0f);
@@ -115,7 +126,22 @@ public class QuestRaven : MonoBehaviour, Hoverable, Interactable, IDestructible
             Random.Range(m_idleEffectIntervalMin, m_idleEffectIntervalMax));
         InvokeRepeating(nameof(CheckSpawn), 1f, 1f);
     }
+    public void Update()
+    {
+        if (!IsAway() && !IsFlying() && Player.m_localPlayer)
+        {
+            UpdateLookTowardsPlayer();
+        }
 
+        if (IsSpawned())
+        {
+            m_exclamation.SetActive(QuestManager.m_currentQuest is null or { m_completed: true } && QuestManager.HasAvailableQuests());
+        }
+        else
+        {
+            m_exclamation.SetActive(false);
+        }
+    }
     public void OnDestroy()
     {
         if (m_instance != this) return;
@@ -161,8 +187,10 @@ public class QuestRaven : MonoBehaviour, Hoverable, Interactable, IDestructible
         }
         else
         {
-            if (m_questData is null) return Localization.instance.Localize(m_name + "\n[<color=yellow><b>$KEY_Use</b></color>] $raven_interact");
-            if (m_questData.m_startQueue.Count == 0) return Localization.instance.Localize(m_name + "\n[<color=yellow><b>$KEY_Use</b></color>] $raven_interact");
+            if (m_questData is null || m_questData.m_startQueue.Count == 0 || !QuestManager.FirstQuestTriggered)
+            {
+                return Localization.instance.Localize(m_name + "\n[<color=yellow><b>$KEY_Use</b></color>] $raven_interact");
+            }
             var dialogue = m_questData.m_startQueue.Peek();
             if (dialogue?.m_action != null)
             {
@@ -191,6 +219,12 @@ public class QuestRaven : MonoBehaviour, Hoverable, Interactable, IDestructible
     public void Talk(bool alt)
     {
         if (!Player.m_localPlayer) return;
+        if (!QuestManager.FirstQuestTriggered)
+        {
+            RandomTalk(m_firstTriggerTalk);
+            QuestManager.FirstQuestTriggered = true;
+            return;
+        }
         if (QuestManager.m_currentQuest == null)
         {
             m_questData ??= QuestManager.GetQuest();
@@ -279,23 +313,6 @@ public class QuestRaven : MonoBehaviour, Hoverable, Interactable, IDestructible
             Random.Range(m_idleEffectIntervalMin, m_idleEffectIntervalMax),
             Random.Range(m_idleEffectIntervalMin, m_idleEffectIntervalMax));
     }
-    public void Update()
-    {
-        if (!IsAway() && !IsFlying() && Player.m_localPlayer)
-        {
-            UpdateLookTowardsPlayer();
-        }
-
-        if (IsSpawned())
-        {
-            m_exclamation.SetActive(QuestManager.m_currentQuest is null or { m_completed: true } && QuestManager.HasAvailableQuests());
-        }
-        else
-        {
-            m_exclamation.SetActive(false);
-        }
-    }
-
     private void UpdateLookTowardsPlayer()
     {
         var vector3 = (Player.m_localPlayer.transform.position - transform.position) with
@@ -403,7 +420,6 @@ public class QuestRaven : MonoBehaviour, Hoverable, Interactable, IDestructible
         CancelInvoke(nameof(CheckSpawn));
         InvokeRepeating(nameof(CheckSpawn), delay, 1f);
     }
-
     public bool IsSpawned() => InState("visible");
     private bool IsAway() => InState("away");
     private bool IsFlying() => InState("flying");
@@ -431,18 +447,7 @@ public class QuestRaven : MonoBehaviour, Hoverable, Interactable, IDestructible
         }
         else
         {
-            if (m_instance is null)
-            {
-                GameObject raven = Instantiate(CreatureQuestsPlugin.m_raven, Player.m_localPlayer.transform.position, Quaternion.identity);
-                if (Utils.FindChild(raven.transform, "Jaw") is { } jaw)
-                {
-                    GameObject thirdEye = Instantiate(CreatureQuestsPlugin.m_thirdEye, jaw);
-                    thirdEye.transform.localPosition = new Vector3(0.0004f, 0.0033f, 0.0116f);
-                    thirdEye.transform.localRotation = new Quaternion(-51.949f, 134.846f, 61.205f, 0f);
-                    thirdEye.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-                }
-            }
-        
+            if (m_instance is null) Instantiate(CreatureQuestsPlugin.m_raven, Player.m_localPlayer.transform.position, Quaternion.identity);
             if (m_instance is null) return;
             m_instance.m_active = true;
         }

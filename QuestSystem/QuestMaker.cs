@@ -5,7 +5,6 @@ using System.Linq;
 using BepInEx;
 using HarmonyLib;
 using ServerSync;
-using Shapeshift.QuestSystem;
 using YamlDotNet.Serialization;
 
 namespace CreatureQuests.QuestSystem;

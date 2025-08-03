@@ -4,12 +4,12 @@ using BepInEx;
 using HarmonyLib;
 using UnityEngine;
 
-namespace Shapeshift.Source;
+namespace CreatureQuests.Managers;
 
 public class CommandData
 {
-    public static string m_startCommand = "shapeshift";
-    public static Dictionary<string, CommandData> m_commands = new();
+    public static readonly string m_startCommand = "shapeshift";
+    public static readonly Dictionary<string, CommandData> m_commands = new();
     
     public readonly string m_description;
     private readonly bool m_isSecret;
